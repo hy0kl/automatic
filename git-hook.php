@@ -13,6 +13,16 @@ if (! is_array($git_data)) {
 }
 
 $repository_name = $git_data['repository']['name'];
+$ref_exp = explode('/', $git_data['ref']);
+$exec_branch = array(
+    'dev',
+    'master',
+);
+if (! in_array($ref_exp[2], $exec_branch)) {
+    $log = sprintf('当前分支不在待部署的配置中. [branch: %s]', $ref_exp[2]);
+    SeasLog::error($log);
+    exit;
+}
 
 $cmd = sprintf('./%s-deploy.sh', $repository_name);
 if (! file_exists($cmd)) {
