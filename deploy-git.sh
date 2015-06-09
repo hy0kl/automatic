@@ -94,5 +94,3 @@ then
     echo "${green}rollback success all.${normal}"
 fi
 
-exit 0
-
