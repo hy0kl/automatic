@@ -4,12 +4,12 @@
 
 #set -x
 
-#user=work
+user=work
 #hosts_conf='192.168.64.10 192.168.64.11'
-#hosts_conf='192.168.64.11'
-#path="/home/work/higo/higo"
+hosts_conf='192.168.64.10'
+path="/home/work/higo/higo"
 
-#. deploy-git.sh deploy
+. deploy-git.sh deploy
 
 user=root
 hosts_conf='192.168.190.2'
