@@ -13,9 +13,5 @@ path="/home/work/higo/higo"
 
 user=root
 hosts_conf='192.168.190.2'
-path="/opt/web/lehe.com/midian"
-
-. deploy-git.sh deploy
-
 path="/opt/web/ng-midian"
 . deploy-git.sh deploy
