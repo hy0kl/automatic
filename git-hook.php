@@ -17,6 +17,7 @@ $ref_exp = explode('/', $git_data['ref']);
 $exec_branch = array(
     'dev',
     'master',
+    'develop',
 );
 if (! in_array($ref_exp[2], $exec_branch)) {
     $log = sprintf('当前分支不在待部署的配置中. [branch: %s]', $ref_exp[2]);
