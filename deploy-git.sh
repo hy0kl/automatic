@@ -55,17 +55,21 @@ if [ 'deploy' == "$opt" ]
 then
     for host in $hosts_conf
     do
-        ssh $user@$host "cd $path && git pull && git log -1 | awk '{if (\$1 ~/commit/) {print \$2}}'"
+        {
+            ssh $user@$host "cd $path && git pull && git log -1 | awk '{if (\$1 ~/commit/) {print \$2}}'"
 
-        ret=$?
-        if [ 0 != $ret ]
-        then
-            echo "${red}deploy fail for: [$host]${normal}"
-            exit -11
-        else
-            echo "${green}deploy success for: [$host]${normal}"
-        fi
+            ret=$?
+            if [ 0 != $ret ]
+            then
+                echo "${red}deploy fail for: [$host]${normal}"
+                exit -11
+            else
+                echo "${green}deploy success for: [$host]${normal}"
+            fi
+        }&
     done
+
+    wait
 
     echo "${green}deploy success all.${normal}"
 elif [ 'rollback' == "$opt" ]
@@ -79,17 +83,21 @@ then
     refs_head=$2
     for host in $hosts_conf
     do
-        ssh $user@$host "cd $path && git reset --hard $refs_head && git log -1 | awk '{if (\$1 ~/commit/) {print \$2}}'"
+        {
+            ssh $user@$host "cd $path && git reset --hard $refs_head && git log -1 | awk '{if (\$1 ~/commit/) {print \$2}}'"
 
-        ret=$?
-        if [ 0 != $ret ]
-        then
-            echo "${red}rollback fail for: [$host]${normal}"
-            exit -12
-        else
-            echo "${green}rollback success for: [$host]${normal}"
-        fi
+            ret=$?
+            if [ 0 != $ret ]
+            then
+                echo "${red}rollback fail for: [$host]${normal}"
+                exit -12
+            else
+                echo "${green}rollback success for: [$host]${normal}"
+            fi
+        }&
     done
+
+    wait
 
     echo "${green}rollback success all.${normal}"
 fi
