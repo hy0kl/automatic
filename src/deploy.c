@@ -29,6 +29,24 @@
 
 #include "cJSON.h"
 
+#define BUF_LEN         128
+#define PATH_LEN        1024
+#define CMD_BUF_LEN     1024
+#define LINE_BUF_LEN    1024
+#define OUTPUT_BUF_LEN  1024 * 500
+
+typedef struct _g_cfg_t
+{
+    char project[BUF_LEN];
+    char opt[BUF_LEN];
+    char refs_head[PATH_LEN];
+
+    char user[BUF_LEN];
+    char path[BUF_LEN];
+
+    cJSON *hosts_conf;
+} g_cfg_t;
+
 /** const 指针形式,彩色 terminal  */
 char *GREEN    = "\e[1;32m";
 char *BLUE     = "\e[1;34m";
@@ -42,8 +60,23 @@ char *NORMAL   = "\e[0m";
         RED, NORMAL, __FILE__, __LINE__, __func__, ##arg)
 #define printfln(format, arg...) fprintf(stderr, format"\n", ##arg)
 
+/** 全局变量 */
+g_cfg_t g_cfg;
+
+void
+usage(const char *argv_0)
+{
+    printfln("%s-----USAGE----%s", CYAN, NORMAL);
+    printfln("%s%s %sproject %sdeploy             %sdeploy project with latest <head>.%s", GREEN, argv_0, BLUE, YELLOW, RED, NORMAL);
+    printfln("%s%s %sproject %srollback %s<head>    %srollback with <head>.%s", GREEN, argv_0, BLUE, YELLOW, MAGENTA, RED, NORMAL);
+
+    exit(EXIT_SUCCESS);
+}
+
 int main(int argc, char *argv[])
 {
+    //parse_arg(int argc, char *argv[]);
+    usage(argv[0]);
 
     return 0;
 }
