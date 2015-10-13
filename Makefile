@@ -18,7 +18,7 @@ OBJS  = src/cJSON.o src/deploy.o
 
 all : $(TARGET)
 	@echo "Start compile all"
-	rm -f *.o
+	rm -f src/*.o
 
 $(TARGET) : $(OBJS)
 	@echo "start compile server"
