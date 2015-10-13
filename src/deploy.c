@@ -49,6 +49,18 @@ typedef struct _g_cfg_t
     cJSON *hosts_conf;
 } g_cfg_t;
 
+typedef struct _tid_cntr_t
+{
+    int tid;
+} tid_cntr_t;
+
+/** 线程工作空间 */
+typedef struct _thread_data_t
+{
+    char *cmd_buff;
+    char *outpub_buff;
+} thread_data_t;
+
 /** const 指针形式,彩色 terminal  */
 char *GREEN    = "\e[1;32m";
 char *BLUE     = "\e[1;34m";
@@ -71,6 +83,7 @@ char *NORMAL   = "\e[0m";
 /** 全局变量 */
 g_cfg_t g_cfg;
 pthread_mutex_t work_mutex;
+thread_data_t  *thread_data;
 
 void
 usage(const char *argv_0)
@@ -190,10 +203,54 @@ PARSE_EXCEPTION:
     exit(114);
 }
 
+void *
+deploy_worker(void *arg)
+{
+    tid_cntr_t *p_tid_cntr = (tid_cntr_t *)arg;
+    int tid = p_tid_cntr->tid;
+    logprintf("tid = %d", tid);
+
+    return NULL;
+}
+
 void
 deploy(void)
 {
     logprintf("start deploy ...");
+
+    pthread_t *pt_dw_core;
+    int i;
+    tid_cntr_t *tid_cntr;
+
+    tid_cntr = (tid_cntr_t *)malloc(sizeof(tid_cntr_t) * g_cfg.host_count);
+    if (NULL == tid_cntr)
+    {
+        print_error("malloc thread data fail, exit.");
+        exit(115);
+    }
+
+    pt_dw_core = (pthread_t *)malloc(sizeof(pthread_t) * g_cfg.host_count);
+    if (! pt_dw_core)
+    {
+        print_error("malloc threads ids for work thrads fail, exit.");
+        exit(116);
+    }
+
+    for (i = 0; i < g_cfg.host_count; ++i)
+    {
+        tid_cntr[i].tid = i;
+        int ret = pthread_create(&pt_dw_core[i], NULL, deploy_worker, (void *)&tid_cntr[i]);
+        if (0 != ret)
+        {
+            print_error("create the %dth pt_dw_core thread fail, exit.", i);
+            exit(116);
+        }
+    }
+
+    for (i = 0; i < g_cfg.host_count; i++)
+    {
+        pthread_join(pt_dw_core[i], NULL);
+    }
 }
 
 void do_work(const char *argv_0)
