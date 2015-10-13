@@ -29,6 +29,7 @@
 
 #include "cJSON.h"
 
+#define DEBUG           1
 #define BUF_LEN         128
 #define PATH_LEN        1024
 #define CMD_BUF_LEN     1024
@@ -56,8 +57,13 @@ char *MAGENTA  = "\e[01;35m";
 char *CYAN     = "\e[01;36m";
 char *NORMAL   = "\e[0m";
 
+#if (DEBUG)
 #define logprintf(format, arg...) fprintf(stderr, "%s[LOG]%s %s:%d:%s "format"\n",\
         RED, NORMAL, __FILE__, __LINE__, __func__, ##arg)
+#else
+#define logprintf(format, arg...) do{}while(0)
+#endif
+
 #define printfln(format, arg...) fprintf(stderr, format"\n", ##arg)
 
 /** 全局变量 */
@@ -73,10 +79,55 @@ usage(const char *argv_0)
     exit(EXIT_SUCCESS);
 }
 
+int
+parse_arg(int argc, char *argv[])
+{
+    if (! (argc > 2))
+    {
+        usage(argv[0]);
+    }
+
+    snprintf(g_cfg.project, BUF_LEN, "%s", argv[1]);
+    snprintf(g_cfg.opt, BUF_LEN, "%s", argv[2]);
+
+    if (0 == strcmp("rollback", g_cfg.opt))
+    {
+        if (! (argc > 3))
+        {
+            usage(argv[0]);
+        }
+
+        snprintf(g_cfg.refs_head, PATH_LEN, "%s", argv[3]);
+        logprintf("g_cfg.refs_head = %s", g_cfg.refs_head);
+    }
+
+    logprintf("g_cfg.project = %s", g_cfg.project);
+    logprintf("g_cfg.opt = %s", g_cfg.opt);
+
+    /** 解析配置文件 */
+    char cfg_file[PATH_LEN];
+    snprintf(cfg_file, PATH_LEN, "conf/%s.json", g_cfg.project);
+    logprintf("cfg_file: %s", cfg_file);
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
-    //parse_arg(int argc, char *argv[]);
-    usage(argv[0]);
+    parse_arg(argc, argv);
+
+    if (0 == strcmp("deploy", g_cfg.opt))
+    {
+        // 部署
+    }
+    else if (0 == strcmp("rollback", g_cfg.opt))
+    {
+        // 回滚
+    }
+    else
+    {
+        usage(argv[0]);
+    }
 
     return 0;
 }
