@@ -1,0 +1,8 @@
+{
+    "user": "work",
+    "path": "/home/work/www/automatic",
+    "hosts_conf": [
+        "172.17.16.55",
+        "172.17.16.75"
+    ]
+}
