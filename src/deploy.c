@@ -59,7 +59,7 @@ char *CYAN     = "\e[01;36m";
 char *NORMAL   = "\e[0m";
 
 #if (DEBUG)
-#define logprintf(format, arg...) fprintf(stderr, "%s[LOG]%s %s:%d:%s "format"\n",\
+#define logprintf(format, arg...) fprintf(stderr, "%s[LOG]%s [%s:%d:%s] "format"\n",\
         RED, NORMAL, __FILE__, __LINE__, __func__, ##arg)
 #else
 #define logprintf(format, arg...) do{}while(0)
@@ -70,6 +70,7 @@ char *NORMAL   = "\e[0m";
 
 /** 全局变量 */
 g_cfg_t g_cfg;
+pthread_mutex_t work_mutex;
 
 void
 usage(const char *argv_0)
@@ -186,16 +187,21 @@ parse_arg(int argc, char *argv[])
 PARSE_EXCEPTION:
     cJSON_Delete(root_json);
     free(data);
-    return 114;
+    exit(114);
 }
 
-int main(int argc, char *argv[])
+void
+deploy(void)
 {
-    parse_arg(argc, argv);
+    logprintf("start deploy ...");
+}
 
+void do_work(const char *argv_0)
+{
     if (0 == strcmp("deploy", g_cfg.opt))
     {
         // 部署
+        deploy();
     }
     else if (0 == strcmp("rollback", g_cfg.opt))
     {
@@ -203,8 +209,16 @@ int main(int argc, char *argv[])
     }
     else
     {
-        usage(argv[0]);
+        usage(argv_0);
     }
+
+    fprintf(stderr, "%sWork done.\n%s", GREEN, NORMAL);
+}
+
+int main(int argc, char *argv[])
+{
+    parse_arg(argc, argv);
+    do_work(argv[0]);
 
     return 0;
 }
