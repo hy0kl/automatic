@@ -18,6 +18,7 @@ VERSION="1.1.0 2015.09"
 #
 # 1. 2015.05.13 完成第一版
 # 2. 2015.09.09 加入多进程并行部署代码
+# 3. 2015.10.14 shell 多进程部署不可控,出现交叉输出,效果不理想,回退到串行执行
 
 # terminal color
     red=$'\e[1;31m'
@@ -56,21 +57,21 @@ if [ 'deploy' == "$opt" ]
 then
     for host in $hosts_conf
     do
-        {
-            ssh $user@$host "cd $path && git pull && git log -1 | awk '{if (\$1 ~/commit/) {print \$2}}'"
+    #{
+        ssh $user@$host "cd $path && git pull && git log -1 | awk '{if (\$1 ~/commit/) {print \$2}}'"
 
-            ret=$?
-            if [ 0 != $ret ]
-            then
-                echo "${red}deploy fail for: [$host]${normal}"
-                exit -11
-            else
-                echo "${green}deploy success for: [$host]${normal}"
-            fi
-        }&
+        ret=$?
+        if [ 0 != $ret ]
+        then
+            echo "${red}deploy fail for: [$host]${normal}"
+            exit -11
+        else
+            echo "${green}deploy success for: [$host]${normal}"
+        fi
+    #}&
     done
 
-    wait
+    #wait
 
     echo "${green}deploy success all.${normal}"
 elif [ 'rollback' == "$opt" ]
@@ -84,21 +85,21 @@ then
     refs_head=$2
     for host in $hosts_conf
     do
-        {
-            ssh $user@$host "cd $path && git reset --hard $refs_head && git log -1 | awk '{if (\$1 ~/commit/) {print \$2}}'"
+    #{
+        ssh $user@$host "cd $path && git reset --hard $refs_head && git log -1 | awk '{if (\$1 ~/commit/) {print \$2}}'"
 
-            ret=$?
-            if [ 0 != $ret ]
-            then
-                echo "${red}rollback fail for: [$host]${normal}"
-                exit -12
-            else
-                echo "${green}rollback success for: [$host]${normal}"
-            fi
-        }&
+        ret=$?
+        if [ 0 != $ret ]
+        then
+            echo "${red}rollback fail for: [$host]${normal}"
+            exit -12
+        else
+            echo "${green}rollback success for: [$host]${normal}"
+        fi
+    #}&
     done
 
-    wait
+    #wait
 
     echo "${green}rollback success all.${normal}"
 fi

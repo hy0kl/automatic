@@ -5,7 +5,7 @@
 #set -x
 
 user=work
-hosts_conf='192.168.64.9'
-path="/home/work/rd"
+hosts_conf='172.17.16.55'
+path="/home/work/www/automatic"
 
 . deploy-git.sh deploy
