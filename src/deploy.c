@@ -30,6 +30,7 @@
 #include "cJSON.h"
 
 #define DEBUG           0
+
 #define BUF_LEN         128
 #define PATH_LEN        1024
 #define CMD_BUF_LEN     1024
@@ -45,6 +46,13 @@
 
 #define printfln(format, arg...) fprintf(stderr, format"\n", ##arg)
 #define print_error(format, arg...) fprintf(stderr, "%s"format"%s\n", RED, ##arg, NORMAL)
+
+static const char *VERSION  =  "v1.0.0";
+#if defined(__DATE__) && defined(__TIME__)
+static const char *BUILD_DATE = __DATE__ " " __TIME__;
+#else
+static const char *BUILD_DATE = "unknown";
+#endif
 
 typedef struct _g_cfg_t
 {
@@ -106,6 +114,7 @@ usage(const char *argv_0)
     printfln("%s-----USAGE----%s", CYAN, NORMAL);
     printfln("%s%s %sproject %sdeploy             %sdeploy project with latest <head>.%s", GREEN, argv_0, BLUE, YELLOW, RED, NORMAL);
     printfln("%s%s %sproject %srollback %s<head>    %srollback with <head>.%s", GREEN, argv_0, BLUE, YELLOW, MAGENTA, RED, NORMAL);
+    printfln("version %s, build at %s\n", VERSION, BUILD_DATE);
 
     exit(EXIT_SUCCESS);
 }
@@ -431,7 +440,7 @@ void do_work(const char *argv_0)
 {
     init_thread();
 
-    fprintf(stderr, "        ___---=== %s%s%s ===---____        \n\n", BLUE, g_cfg.project, NORMAL);
+    fprintf(stderr, "\n        ___---=== %s%s%s ===---____        \n\n", BLUE, g_cfg.project, NORMAL);
 
     if (0 == strcmp("deploy", g_cfg.opt))
     {
@@ -450,7 +459,7 @@ void do_work(const char *argv_0)
         usage(argv_0);
     }
 
-    fprintf(stderr, "%sWork done.\n%s", GREEN, NORMAL);
+    fprintf(stderr, "%sWork done.%s\n\n", GREEN, NORMAL);
 }
 
 int main(int argc, char *argv[])
