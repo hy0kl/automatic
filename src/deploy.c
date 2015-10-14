@@ -81,6 +81,7 @@ typedef enum _g_error_code_e
     MALLOC_THREAD_ARGS_FAIL,
     MALLOC_THREAD_DATA_FAIL,
     CREATE_THREAD_FAIL,
+    INIT_THREAD_FAIL,
 } g_error_code_e;
 
 /** const 指针形式,彩色 terminal  */
@@ -285,14 +286,42 @@ deploy(void)
     }
 }
 
-void init()
+void init_thread()
 {
+    thread_data = (thread_data_t *)malloc(sizeof(thread_data_t) * g_cfg.host_count);
+    if (NULL == thread_data)
+    {
+        print_error("malloc for thread_data fail.");
+        goto INIT_THREAD_EXCEPTION;
+    }
 
+    int i = 0;
+    for (; i < g_cfg.host_count; i++)
+    {
+        thread_data[i].cmd_buff    = (char *)malloc(sizeof(char) * CMD_BUF_LEN);
+        thread_data[i].outpub_buff = (char *)malloc(sizeof(char) * OUTPUT_BUF_LEN);
+        if (NULL == thread_data[i].cmd_buff || NULL == thread_data[i].outpub_buff)
+        {
+            print_error("malloc for thread_data[%d]->[member] fail.", i);
+            free(thread_data);
+            goto INIT_THREAD_EXCEPTION;
+        }
+
+        thread_data[i].cmd_buff[0]    = '\0';
+        thread_data[i].outpub_buff[0] = '\0';
+    }
+
+    return;
+
+INIT_THREAD_EXCEPTION:
+    exit(INIT_THREAD_FAIL);
 }
 
 void do_work(const char *argv_0)
 {
-    init();
+    init_thread();
+
+    fprintf(stderr, "        ___---=== %s%s%s ===---____        \n", MAGENTA, g_cfg.project, NORMAL);
 
     if (0 == strcmp("deploy", g_cfg.opt))
     {
