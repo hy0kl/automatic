@@ -325,10 +325,29 @@ deploy_worker(void *arg)
     return NULL;
 }
 
-void
-deploy(void)
+void *
+rollback_worker(void *arg)
 {
-    logprintf("start deploy ...");
+    tid_cntr_t *p_tid_cntr = (tid_cntr_t *)arg;
+    int tid = p_tid_cntr->tid;
+    logprintf("tid = %d", tid);
+
+    thread_data_t *t_data = &thread_data[tid];
+    snprintf(t_data->cmd_buff, CMD_BUF_LEN,
+            "ssh %s@%s \"cd %s && git reset --hard %s && git log -1 | awk '{if (\\$1 ~/commit/) {print \\$2}}' 2>&1\"",
+            g_cfg.user, g_cfg.hosts_conf[tid], g_cfg.path, g_cfg.refs_head);
+    logprintf("tid: %d, cmd: %s", tid, t_data->cmd_buff);
+
+    exec_cmd(tid);
+    output_result(tid);
+
+    return NULL;
+}
+
+void
+handle_work(int opt_num)
+{
+    logprintf("start handle_work ...");
 
     pthread_t *pt_dw_core;
     int i;
@@ -351,7 +370,17 @@ deploy(void)
     for (i = 0; i < g_cfg.host_count; ++i)
     {
         tid_cntr[i].tid = i;
-        int ret = pthread_create(&pt_dw_core[i], NULL, deploy_worker, (void *)&tid_cntr[i]);
+
+        int ret;
+        if (1 == opt_num)
+        {
+            ret = pthread_create(&pt_dw_core[i], NULL, deploy_worker, (void *)&tid_cntr[i]);
+        }
+        else
+        {
+            ret = pthread_create(&pt_dw_core[i], NULL, rollback_worker, (void *)&tid_cntr[i]);
+        }
+
         if (0 != ret)
         {
             print_error("create the %dth pt_dw_core thread fail, exit.", i);
@@ -407,11 +436,14 @@ void do_work(const char *argv_0)
     if (0 == strcmp("deploy", g_cfg.opt))
     {
         // 部署
-        deploy();
+        //deploy();
+        handle_work(1);
     }
     else if (0 == strcmp("rollback", g_cfg.opt))
     {
         // 回滚
+        //rollback();
+        handle_work(2);
     }
     else
     {
