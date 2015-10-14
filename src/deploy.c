@@ -29,7 +29,7 @@
 
 #include "cJSON.h"
 
-#define DEBUG           1
+#define DEBUG           0
 #define BUF_LEN         128
 #define PATH_LEN        1024
 #define CMD_BUF_LEN     1024
@@ -402,7 +402,7 @@ void do_work(const char *argv_0)
 {
     init_thread();
 
-    fprintf(stderr, "        ___---=== %s%s%s ===---____        \n\n", MAGENTA, g_cfg.project, NORMAL);
+    fprintf(stderr, "        ___---=== %s%s%s ===---____        \n\n", BLUE, g_cfg.project, NORMAL);
 
     if (0 == strcmp("deploy", g_cfg.opt))
     {
