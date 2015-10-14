@@ -67,8 +67,9 @@ typedef struct _tid_cntr_t
 /** 线程工作空间 */
 typedef struct _thread_data_t
 {
+    char *line_buff;
     char *cmd_buff;
-    char *outpub_buff;
+    char *output_buff;
 } thread_data_t;
 
 /** 全局状态码/错误码 */
@@ -82,6 +83,7 @@ typedef enum _g_error_code_e
     MALLOC_THREAD_DATA_FAIL,
     CREATE_THREAD_FAIL,
     INIT_THREAD_FAIL,
+    POPEN_FAIL,
 } g_error_code_e;
 
 /** const 指针形式,彩色 terminal  */
@@ -236,12 +238,89 @@ PARSE_EXCEPTION:
     exit(PARSE_CONFIG_EXCEPTION);
 }
 
+void
+exec_cmd(int tid)
+{
+    logprintf("tid: %d", tid);
+
+    thread_data_t *t_data = &thread_data[tid];
+
+    snprintf(t_data->line_buff, LINE_BUF_LEN,
+            "######## START %s%s %s%s@%s%s ########\n",
+            MAGENTA, g_cfg.opt,
+            YELLOW, g_cfg.user, g_cfg.hosts_conf[tid], NORMAL);
+    strncat(t_data->output_buff, t_data->line_buff, LINE_BUF_LEN);
+
+    /** 执行命令 */
+    int   rc = 0;
+    FILE *fp;
+
+    fp = popen(t_data->cmd_buff, "r");
+    if (NULL == fp) {
+        snprintf(t_data->line_buff, LINE_BUF_LEN, "%sCan NOT popen(%s).%s\n", RED, t_data->cmd_buff, NORMAL);
+        goto FINISH;
+    }
+
+    while (strlen(t_data->output_buff) < OUTPUT_BUF_LEN - LINE_BUF_LEN && NULL != fgets(t_data->line_buff, LINE_BUF_LEN, fp))
+    {
+        strncat(t_data->output_buff, t_data->line_buff, strlen(t_data->line_buff));
+    }
+
+    rc = pclose(fp);
+    int status_child = WEXITSTATUS(rc);
+
+    if (EXIT_SUCCESS == status_child)
+    {
+        snprintf(t_data->line_buff, LINE_BUF_LEN, "%s%s%s SUCCESS %s@%s%s\n",
+                MAGENTA, g_cfg.opt, GREEN, g_cfg.user, g_cfg.hosts_conf[tid], NORMAL);
+    }
+    else
+    {
+        snprintf(t_data->line_buff, LINE_BUF_LEN, "%s%s%s FAIL %s@%s%s\n",
+                MAGENTA, g_cfg.opt, RED, g_cfg.user, g_cfg.hosts_conf[tid], NORMAL);
+    }
+    if (strlen(t_data->output_buff) < OUTPUT_BUF_LEN - LINE_BUF_LEN)
+    {
+        strncat(t_data->output_buff, t_data->line_buff, LINE_BUF_LEN);
+    }
+
+FINISH:
+    snprintf(t_data->line_buff, LINE_BUF_LEN, "######## END ########\n\n");
+    if (strlen(t_data->output_buff) < OUTPUT_BUF_LEN - LINE_BUF_LEN)
+    {
+        strncat(t_data->output_buff, t_data->line_buff, LINE_BUF_LEN);
+    }
+
+    return;
+}
+
+void
+output_result(int tid)
+{
+    thread_data_t *t_data = &thread_data[tid];
+
+    pthread_mutex_lock(&work_mutex);
+    fprintf(stderr, "%s", t_data->output_buff);
+    pthread_mutex_unlock(&work_mutex);
+
+    return;
+}
+
 void *
 deploy_worker(void *arg)
 {
     tid_cntr_t *p_tid_cntr = (tid_cntr_t *)arg;
     int tid = p_tid_cntr->tid;
     logprintf("tid = %d", tid);
+
+    thread_data_t *t_data = &thread_data[tid];
+    snprintf(t_data->cmd_buff, CMD_BUF_LEN,
+            "ssh %s@%s \"cd %s && git pull && git log -1 | awk '{if (\\$1 ~/commit/) {print \\$2}}' 2>&1\"",
+            g_cfg.user, g_cfg.hosts_conf[tid], g_cfg.path);
+    logprintf("tid: %d, cmd: %s", tid, t_data->cmd_buff);
+
+    exec_cmd(tid);
+    output_result(tid);
 
     return NULL;
 }
@@ -298,17 +377,19 @@ void init_thread()
     int i = 0;
     for (; i < g_cfg.host_count; i++)
     {
+        thread_data[i].line_buff   = (char *)malloc(sizeof(char) * LINE_BUF_LEN);
         thread_data[i].cmd_buff    = (char *)malloc(sizeof(char) * CMD_BUF_LEN);
-        thread_data[i].outpub_buff = (char *)malloc(sizeof(char) * OUTPUT_BUF_LEN);
-        if (NULL == thread_data[i].cmd_buff || NULL == thread_data[i].outpub_buff)
+        thread_data[i].output_buff = (char *)malloc(sizeof(char) * OUTPUT_BUF_LEN);
+        if (NULL == thread_data[i].line_buff ||NULL == thread_data[i].cmd_buff || NULL == thread_data[i].output_buff)
         {
             print_error("malloc for thread_data[%d]->[member] fail.", i);
             free(thread_data);
             goto INIT_THREAD_EXCEPTION;
         }
 
+        thread_data[i].line_buff[0]   = '\0';
         thread_data[i].cmd_buff[0]    = '\0';
-        thread_data[i].outpub_buff[0] = '\0';
+        thread_data[i].output_buff[0] = '\0';
     }
 
     return;
@@ -321,7 +402,7 @@ void do_work(const char *argv_0)
 {
     init_thread();
 
-    fprintf(stderr, "        ___---=== %s%s%s ===---____        \n", MAGENTA, g_cfg.project, NORMAL);
+    fprintf(stderr, "        ___---=== %s%s%s ===---____        \n\n", MAGENTA, g_cfg.project, NORMAL);
 
     if (0 == strcmp("deploy", g_cfg.opt))
     {
