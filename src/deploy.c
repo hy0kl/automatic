@@ -36,6 +36,16 @@
 #define LINE_BUF_LEN    1024
 #define OUTPUT_BUF_LEN  1024 * 500
 
+#if (DEBUG)
+#define logprintf(format, arg...) fprintf(stderr, "%s[LOG]%s [%s:%d:%s] "format"\n",\
+        RED, NORMAL, __FILE__, __LINE__, __func__, ##arg)
+#else
+#define logprintf(format, arg...) do{}while(0)
+#endif
+
+#define printfln(format, arg...) fprintf(stderr, format"\n", ##arg)
+#define print_error(format, arg...) fprintf(stderr, "%s"format"%s\n", RED, ##arg, NORMAL)
+
 typedef struct _g_cfg_t
 {
     char project[BUF_LEN];
@@ -45,8 +55,8 @@ typedef struct _g_cfg_t
     char user[BUF_LEN];
     char path[BUF_LEN];
 
-    int host_count;
-    cJSON *hosts_conf;
+    int    host_count;
+    char **hosts_conf;
 } g_cfg_t;
 
 typedef struct _tid_cntr_t
@@ -61,6 +71,18 @@ typedef struct _thread_data_t
     char *outpub_buff;
 } thread_data_t;
 
+/** 全局状态码/错误码 */
+typedef enum _g_error_code_e
+{
+    CAN_NOT_OPEN_FILE       = 111,
+    MALLOC_JSON_PARSER_FAIL,
+    PARSE_JSON_FAIL,
+    PARSE_CONFIG_EXCEPTION,
+    MALLOC_THREAD_ARGS_FAIL,
+    MALLOC_THREAD_DATA_FAIL,
+    CREATE_THREAD_FAIL,
+} g_error_code_e;
+
 /** const 指针形式,彩色 terminal  */
 char *GREEN    = "\e[1;32m";
 char *BLUE     = "\e[1;34m";
@@ -69,16 +91,6 @@ char *RED      = "\e[1;31m";
 char *MAGENTA  = "\e[01;35m";
 char *CYAN     = "\e[01;36m";
 char *NORMAL   = "\e[0m";
-
-#if (DEBUG)
-#define logprintf(format, arg...) fprintf(stderr, "%s[LOG]%s [%s:%d:%s] "format"\n",\
-        RED, NORMAL, __FILE__, __LINE__, __func__, ##arg)
-#else
-#define logprintf(format, arg...) do{}while(0)
-#endif
-
-#define printfln(format, arg...) fprintf(stderr, format"\n", ##arg)
-#define print_error(format, arg...) fprintf(stderr, "%s"format"%s\n", RED, ##arg, NORMAL)
 
 /** 全局变量 */
 g_cfg_t g_cfg;
@@ -125,12 +137,12 @@ parse_arg(int argc, char *argv[])
     snprintf(cfg_file, PATH_LEN, "conf/%s.json", g_cfg.project);
     logprintf("cfg_file: %s", cfg_file);
 
-    //从文件中读取要解析的JSON数据
+    // 从文件中读取要解析的JSON数据
     FILE *fp = fopen(cfg_file, "r");
     if (NULL == fp)
     {
         print_error("Can NOT open config file: %s", cfg_file);
-        exit(111);
+        exit(CAN_NOT_OPEN_FILE);
     }
 
     fseek(fp, 0, SEEK_END);
@@ -142,22 +154,21 @@ parse_arg(int argc, char *argv[])
         print_error("Can NOT malloc for json paser.");
 
         fclose(fp);
-        exit(112);
+        exit(MALLOC_JSON_PARSER_FAIL);
     }
 
     fread(data, 1, len, fp);
     fclose(fp);
 
-    //解析JSON数据
-    cJSON *root_json = cJSON_Parse(data);    //将字符串解析成json结构体
+    // 解析JSON数据
+    cJSON *root_json = cJSON_Parse(data);    // 将字符串解析成json结构体
     if (NULL == root_json)
     {
         print_error("parse JSON error: %s", cJSON_GetErrorPtr());
 
         cJSON_Delete(root_json);
         free(data);
-        //exit(JSON_PARSE_FAILURE);
-        exit(113);
+        exit(PARSE_JSON_FAIL);
     }
 
     cJSON *user = cJSON_GetObjectItem(root_json, "user");
@@ -178,18 +189,39 @@ parse_arg(int argc, char *argv[])
     snprintf(g_cfg.path, BUF_LEN, "%s", path->valuestring);
     logprintf("g_cfg.path: %s", g_cfg.path);
 
-    g_cfg.hosts_conf = cJSON_GetObjectItem(root_json, "hosts_conf");
-    if (NULL == g_cfg.hosts_conf)
+    cJSON *hosts_conf = cJSON_GetObjectItem(root_json, "hosts_conf");
+    if (NULL == hosts_conf)
     {
         print_error("Lost config: hosts_conf");
         goto PARSE_EXCEPTION;
     }
-    g_cfg.host_count = cJSON_GetArraySize(g_cfg.hosts_conf);
+    g_cfg.host_count = cJSON_GetArraySize(hosts_conf);
     logprintf("g_cfg.host_count = %d", g_cfg.host_count);
     if (! (g_cfg.host_count > 0 ))
     {
         print_error("Need config host.");
         goto PARSE_EXCEPTION;
+    }
+    g_cfg.hosts_conf = (char **)malloc(sizeof(char *) * g_cfg.host_count);
+    if (NULL == g_cfg.hosts_conf)
+    {
+        print_error("malloc hosts_conf fail.");
+        goto PARSE_EXCEPTION;
+    }
+    int i = 0;
+    for (; i < g_cfg.host_count; i++)
+    {
+        g_cfg.hosts_conf[i] = (char *)malloc(sizeof(char) * BUF_LEN);
+        if (NULL == g_cfg.hosts_conf[i])
+        {
+            print_error("malloc for host buff fail. id: %d", i);
+            free(g_cfg.hosts_conf);
+            goto PARSE_EXCEPTION;
+        }
+
+        cJSON *item = cJSON_GetArrayItem(hosts_conf, i);
+        snprintf(g_cfg.hosts_conf[i], BUF_LEN, "%s", item->valuestring);
+        logprintf("g_cfg.hosts_conf[%d] = %s", i, g_cfg.hosts_conf[i]);
     }
 
     cJSON_Delete(root_json);
@@ -200,7 +232,7 @@ parse_arg(int argc, char *argv[])
 PARSE_EXCEPTION:
     cJSON_Delete(root_json);
     free(data);
-    exit(114);
+    exit(PARSE_CONFIG_EXCEPTION);
 }
 
 void *
@@ -226,14 +258,14 @@ deploy(void)
     if (NULL == tid_cntr)
     {
         print_error("malloc thread data fail, exit.");
-        exit(115);
+        exit(MALLOC_THREAD_ARGS_FAIL);
     }
 
     pt_dw_core = (pthread_t *)malloc(sizeof(pthread_t) * g_cfg.host_count);
     if (! pt_dw_core)
     {
         print_error("malloc threads ids for work thrads fail, exit.");
-        exit(116);
+        exit(MALLOC_THREAD_DATA_FAIL);
     }
 
     for (i = 0; i < g_cfg.host_count; ++i)
@@ -243,7 +275,7 @@ deploy(void)
         if (0 != ret)
         {
             print_error("create the %dth pt_dw_core thread fail, exit.", i);
-            exit(116);
+            exit(CREATE_THREAD_FAIL);
         }
     }
 
@@ -253,8 +285,15 @@ deploy(void)
     }
 }
 
+void init()
+{
+
+}
+
 void do_work(const char *argv_0)
 {
+    init();
+
     if (0 == strcmp("deploy", g_cfg.opt))
     {
         // 部署
