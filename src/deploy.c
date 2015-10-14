@@ -111,7 +111,7 @@ thread_data_t  *thread_data;
 void
 usage(const char *argv_0)
 {
-    printfln("%s-----USAGE----%s", CYAN, NORMAL);
+    printfln("\n%s-----USAGE----%s", CYAN, NORMAL);
     printfln("%s%s %sproject %sdeploy             %sdeploy project with latest <head>.%s", GREEN, argv_0, BLUE, YELLOW, RED, NORMAL);
     printfln("%s%s %sproject %srollback %s<head>    %srollback with <head>.%s", GREEN, argv_0, BLUE, YELLOW, MAGENTA, RED, NORMAL);
     printfln("version %s, build at %s\n", VERSION, BUILD_DATE);
@@ -358,6 +358,8 @@ handle_work(int opt_num)
 {
     logprintf("start handle_work ...");
 
+    fprintf(stderr, "\n        ___---=== %s%s%s ===---____        \n\n", BLUE, g_cfg.project, NORMAL);
+
     pthread_t *pt_dw_core;
     int i;
     tid_cntr_t *tid_cntr;
@@ -440,18 +442,14 @@ void do_work(const char *argv_0)
 {
     init_thread();
 
-    fprintf(stderr, "\n        ___---=== %s%s%s ===---____        \n\n", BLUE, g_cfg.project, NORMAL);
-
     if (0 == strcmp("deploy", g_cfg.opt))
     {
-        // 部署
-        //deploy();
+        // 部署 deploy
         handle_work(1);
     }
     else if (0 == strcmp("rollback", g_cfg.opt))
     {
-        // 回滚
-        //rollback();
+        // 回滚 rollback
         handle_work(2);
     }
     else
