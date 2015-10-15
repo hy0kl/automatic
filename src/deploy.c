@@ -255,8 +255,8 @@ exec_cmd(int tid)
     thread_data_t *t_data = &thread_data[tid];
 
     snprintf(t_data->line_buf, LINE_BUF_LEN,
-            "######## START %s%s %s%s@%s%s ########\n",
-            MAGENTA, g_cfg.opt,
+            "######## %sSTART %s%s %s%s@%s%s ########\n",
+            CYAN, MAGENTA, g_cfg.opt,
             YELLOW, g_cfg.user, g_cfg.hosts_conf[tid], NORMAL);
     strncat(t_data->output_buf, t_data->line_buf, LINE_BUF_LEN);
 
@@ -294,7 +294,7 @@ exec_cmd(int tid)
     }
 
 FINISH:
-    snprintf(t_data->line_buf, LINE_BUF_LEN, "######## END ########\n\n");
+    snprintf(t_data->line_buf, LINE_BUF_LEN, "######## %sEND%s ########\n\n", CYAN, NORMAL);
     if (strlen(t_data->output_buf) < OUTPUT_BUF_LEN - LINE_BUF_LEN)
     {
         strncat(t_data->output_buf, t_data->line_buf, LINE_BUF_LEN);
