@@ -17,11 +17,11 @@ TARGET = deploy
 OBJS  = src/cJSON.o src/deploy.o
 
 all : $(TARGET)
-	@echo "Start compile all"
+	@echo "Compile project"
 	rm -f src/*.o
 
 $(TARGET) : $(OBJS)
-	@echo "start compile server"
+	@echo "Start compiler"
 	$(GCC) -g -o $@ $^ $(LIBDIR)
 
 %.o : %.c
