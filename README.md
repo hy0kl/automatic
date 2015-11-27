@@ -9,7 +9,30 @@ git&amp;gitlab web-hook 自动部署项目脚本
 .
 ├── conf        # 部署项目配置文件
 ├── script      # shell + php 部署脚本
-└── src         # c 语言写的部署脚本
+└── src         # c 语言写的部署工具
+```
+
+# 使用说明
+## 简介
+当待部署的机器比较多时,用 shell 来串行部署会有明显的部署延后现象.
+
+建议使用c语言版的并行部署工具.
+
+##  使用方法
+
+```
+1. 在本项目主目录下执行 make,会生成 deploy 工具.
+2. 直接执行 deploy 工具,会提示使用说明:
+$ ./deploy
+
+-----USAGE----
+./deploy project deploy             deploy project with latest <head>.
+./deploy project rollback <head>    rollback with <head>.
+version v1.0.0, build at Oct 23 2015 17:44:16
+
+3. 在 conf/ 下参考 demo.json 来写部署的配置文件.
+4. 以 demo 项目为例,批量并行部署上线代码:
+$ ./deploy demo deploy
 ```
 
 # 问题
