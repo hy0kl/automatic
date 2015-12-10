@@ -102,6 +102,7 @@ char *RED      = "\e[1;31m";
 char *MAGENTA  = "\e[01;35m";
 char *CYAN     = "\e[01;36m";
 char *NORMAL   = "\e[0m";
+char *EMPTY    = "";
 
 /** 全局变量 */
 g_cfg_t g_cfg;
@@ -245,6 +246,20 @@ PARSE_EXCEPTION:
     cJSON_Delete(root_json);
     free(data);
     exit(PARSE_CONFIG_EXCEPTION);
+}
+
+void check_tty()
+{
+    if (! isatty(fileno(stdout)))
+    {
+        GREEN    = EMPTY;
+        BLUE     = EMPTY;
+        YELLOW   = EMPTY;
+        RED      = EMPTY;
+        MAGENTA  = EMPTY;
+        CYAN     = EMPTY;
+        NORMAL   = EMPTY;
+    }
 }
 
 void
@@ -462,6 +477,7 @@ void do_work(const char *argv_0)
 
 int main(int argc, char *argv[])
 {
+    check_tty();
     parse_arg(argc, argv);
     do_work(argv[0]);
 
