@@ -339,7 +339,7 @@ deploy_worker(void *arg)
 
     thread_data_t *t_data = &thread_data[tid];
     snprintf(t_data->cmd_buf, CMD_BUF_LEN,
-            "ssh %s@%s \"cd %s && git pull && git log -1 | awk '{if (\\$1 ~/commit/) {print \\$2}}' 2>&1\"",
+            "ssh %s@%s \"cd %s && git pull 2>&1 && git log -1 | awk '{if (\\$1 ~/commit/) {print \\$2}}'\" 2>&1",
             g_cfg.user, g_cfg.hosts_conf[tid], g_cfg.path);
     logprintf("tid: %d, cmd: %s", tid, t_data->cmd_buf);
 
@@ -358,7 +358,7 @@ rollback_worker(void *arg)
 
     thread_data_t *t_data = &thread_data[tid];
     snprintf(t_data->cmd_buf, CMD_BUF_LEN,
-            "ssh %s@%s \"cd %s && git reset --hard %s && git log -1 | awk '{if (\\$1 ~/commit/) {print \\$2}}' 2>&1\"",
+            "ssh %s@%s \"cd %s && git reset --hard %s 2>&1 && git log -1 | awk '{if (\\$1 ~/commit/) {print \\$2}}'\" 2>&1",
             g_cfg.user, g_cfg.hosts_conf[tid], g_cfg.path, g_cfg.refs_head);
     logprintf("tid: %d, cmd: %s", tid, t_data->cmd_buf);
 
