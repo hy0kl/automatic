@@ -99,8 +99,9 @@ char *GREEN    = "\e[1;32m";
 char *BLUE     = "\e[1;34m";
 char *YELLOW   = "\e[1;33m";
 char *RED      = "\e[1;31m";
-char *MAGENTA  = "\e[01;35m";
-char *CYAN     = "\e[01;36m";
+char *BLINK_RED= "\e[1;31;5m";
+char *MAGENTA  = "\e[1;35m";
+char *CYAN     = "\e[1;36m";
 char *NORMAL   = "\e[0m";
 char *EMPTY    = "";
 
@@ -256,6 +257,7 @@ void check_tty()
         BLUE     = EMPTY;
         YELLOW   = EMPTY;
         RED      = EMPTY;
+        BLINK_RED= EMPTY;
         MAGENTA  = EMPTY;
         CYAN     = EMPTY;
         NORMAL   = EMPTY;
@@ -301,7 +303,7 @@ exec_cmd(int tid)
     else
     {
         snprintf(t_data->line_buf, LINE_BUF_LEN, "%s%s%s FAIL %s@%s%s\n",
-                MAGENTA, g_cfg.opt, RED, g_cfg.user, g_cfg.hosts_conf[tid], NORMAL);
+                MAGENTA, g_cfg.opt, BLINK_RED, g_cfg.user, g_cfg.hosts_conf[tid], NORMAL);
     }
     if (strlen(t_data->output_buf) < OUTPUT_BUF_LEN - LINE_BUF_LEN)
     {
