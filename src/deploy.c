@@ -172,6 +172,8 @@ parse_arg(int argc, char *argv[])
     }
 
     fread(data, 1, len, fp);
+    data[len] = '\0';
+
     fclose(fp);
 
     // 解析JSON数据
