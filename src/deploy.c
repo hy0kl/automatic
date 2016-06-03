@@ -352,7 +352,7 @@ latest_worker(void *arg)
 
     thread_data_t *t_data = &thread_data[tid];
     snprintf(t_data->cmd_buf, CMD_BUF_LEN,
-            "ssh %s@%s \"cd %s && git log -1 2>&1",
+            "ssh %s@%s \"cd %s && git log -1 2>&1 \"",
             g_cfg.user, g_cfg.hosts_conf[tid], g_cfg.path);
     logprintf("tid: %d, cmd: %s", tid, t_data->cmd_buf);
 
