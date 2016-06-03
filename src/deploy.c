@@ -48,7 +48,7 @@
 #define printfln(format, arg...) fprintf(stderr, format"\n", ##arg)
 #define print_error(format, arg...) fprintf(stderr, "%s"format"%s\n", RED, ##arg, NORMAL)
 
-static const char *VERSION  =  "v1.0.0";
+static const char *VERSION  =  "v1.0.1";
 #if defined(__DATE__) && defined(__TIME__)
 static const char *BUILD_DATE = __DATE__ " " __TIME__;
 #else
@@ -95,6 +95,13 @@ typedef enum _g_error_code_e
     POPEN_FAIL,
 } g_error_code_e;
 
+typedef enum _handle_opt
+{
+    OPT_LATEST   = 0,
+    OPT_DEPLOY   = 1,
+    OPT_ROLLBACK = 2,
+} handle_opt;
+
 /** const 指针形式,彩色 terminal  */
 char *GREEN    = "\e[1;32m";
 char *BLUE     = "\e[1;34m";
@@ -115,6 +122,7 @@ void
 usage(const char *argv_0)
 {
     printfln("\n%s-----USAGE----%s", CYAN, NORMAL);
+    printfln("%s%s %sproject %slatest             %sshow latest git log.%s", GREEN, argv_0, BLUE, YELLOW, RED, NORMAL);
     printfln("%s%s %sproject %sdeploy             %sdeploy project with latest <head>.%s", GREEN, argv_0, BLUE, YELLOW, RED, NORMAL);
     printfln("%s%s %sproject %srollback %s<head>    %srollback with <head>.%s", GREEN, argv_0, BLUE, YELLOW, MAGENTA, RED, NORMAL);
     printfln("version %s, build at %s\n", VERSION, BUILD_DATE);
@@ -336,6 +344,25 @@ output_result(int tid)
 }
 
 void *
+latest_worker(void *arg)
+{
+    tid_cntr_t *p_tid_cntr = (tid_cntr_t *)arg;
+    int tid = p_tid_cntr->tid;
+    logprintf("tid = %d", tid);
+
+    thread_data_t *t_data = &thread_data[tid];
+    snprintf(t_data->cmd_buf, CMD_BUF_LEN,
+            "ssh %s@%s \"cd %s && git log -1 2>&1",
+            g_cfg.user, g_cfg.hosts_conf[tid], g_cfg.path);
+    logprintf("tid: %d, cmd: %s", tid, t_data->cmd_buf);
+
+    exec_cmd(tid);
+    output_result(tid);
+
+    return NULL;
+}
+
+void *
 deploy_worker(void *arg)
 {
     tid_cntr_t *p_tid_cntr = (tid_cntr_t *)arg;
@@ -374,7 +401,7 @@ rollback_worker(void *arg)
 }
 
 void
-handle_work(int opt_num)
+handle_work(handle_opt opt_num)
 {
     logprintf("start handle_work ...");
 
@@ -402,14 +429,18 @@ handle_work(int opt_num)
     {
         tid_cntr[i].tid = i;
 
-        int ret;
-        if (1 == opt_num)
+        int ret = -1;
+        if (OPT_DEPLOY == opt_num)
         {
             ret = pthread_create(&pt_dw_core[i], NULL, deploy_worker, (void *)&tid_cntr[i]);
         }
-        else
+        else if (OPT_ROLLBACK == opt_num)
         {
             ret = pthread_create(&pt_dw_core[i], NULL, rollback_worker, (void *)&tid_cntr[i]);
+        }
+        else if (OPT_LATEST == opt_num)
+        {
+            ret = pthread_create(&pt_dw_core[i], NULL, latest_worker, (void *)&tid_cntr[i]);
         }
 
         if (0 != ret)
@@ -465,12 +496,17 @@ void do_work(const char *argv_0)
     if (0 == strcmp("deploy", g_cfg.opt))
     {
         // 部署 deploy
-        handle_work(1);
+        handle_work(OPT_DEPLOY);
     }
     else if (0 == strcmp("rollback", g_cfg.opt))
     {
         // 回滚 rollback
-        handle_work(2);
+        handle_work(OPT_ROLLBACK);
+    }
+    else if (0 == strcmp("latest", g_cfg.opt))
+    {
+        // 最后线上最新 log
+        handle_work(OPT_LATEST);
     }
     else
     {
