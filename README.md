@@ -21,11 +21,12 @@ git&amp;gitlab web-hook 自动部署项目脚本
 ##  使用方法
 
 ```
-1. 在本项目主目录下执行 make,会生成 deploy 工具.
+1. 在本项目主目录下执行 make(BSD下请使用gmake),会生成 deploy 工具.
 2. 直接执行 deploy 工具,会提示使用说明:
 $ ./deploy
 
 -----USAGE----
+./deploy project latest             show latest git log.
 ./deploy project deploy             deploy project with latest <head>.
 ./deploy project rollback <head>    rollback with <head>.
 version v1.0.0, build at Oct 23 2015 17:44:16
